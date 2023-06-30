@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import Profile
+from .models import Profile,Product
 from django.contrib.auth import(
     authenticate,
     get_user_model
@@ -97,3 +97,15 @@ class ProfileEditForm(forms.ModelForm):
         if commit:
             profile.save()
         return profile
+    
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ('name', 'description', 'price')
+
+
+
+#class ProductQuantityForm(forms.ModelForm):
+#    class Meta:
+#        model = Product
+#        fields = ['quantity']

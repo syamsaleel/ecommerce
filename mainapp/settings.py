@@ -124,3 +124,4 @@ STATIC_URL = 'static/'
 CART_SESSION_ID = 'cart'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+

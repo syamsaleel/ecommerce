@@ -1,11 +1,17 @@
 from django.shortcuts import render ,redirect,get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .forms import UserLoginForm,UserRegisterForm
+from .forms import UserLoginForm,UserRegisterForm,ProductForm,OrderCreateForm,ProfileForm
 from .cart import Cart
-from .forms import OrderForm
-from .models import Order
 from django.contrib.auth import logout
 from .models import Profile
+from django.contrib import messages
+from django.contrib import messages
+from django.views import View
+from .models import OrderItem,Profile,Product,Order
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import AuthenticationForm
+from django.utils.decorators import method_decorator
+import traceback
 
 from django.contrib.auth import(
     authenticate,
@@ -17,6 +23,7 @@ from django.contrib.auth import(
 def home(request):
     message = "Welcome to our Ecommerce Web App!"
     context = {'message': message}
+    
     return render(request, 'webapp/new.html', context)
 
 
@@ -57,9 +64,7 @@ def register_view(request):
 
 
 
-from .models import Profile
-from django.contrib.auth.models import User
-from .forms import ProfileForm
+
 
 
 @login_required
@@ -128,26 +133,6 @@ def remove_cart(request, product_id):
     cart.remove(product)
     return redirect('cart')
 
-#@login_required
-#def create_profile(request):
-#    try:
-#        profile = request.user.profile
-#    except Profile.DoesNotExist:
-#        profile = Profile(user=request.user)
-#        profile.save()
-#    return redirect('webapp/detail.html') 
-
-#@login_required
-#def profile_detail(request):
-#    profile = request.user.profile
-#    return render(request, 'webapp/detail.html', {'profile': profile})
-
-
-#from django.contrib.auth.decorators import login_required
-#from .models import Profile
-#from django.contrib.auth.models import User
-
-
 @login_required
 def profile_view(request):
     user = request.user
@@ -190,25 +175,13 @@ def profile_edit(request):
     return render(request, 'webapp/profile_edit.html', context)
 
 
-
-
-
-
-
-
-from django.core.paginator import Paginator
-from django.contrib import messages
-from django.views import View
-from django.shortcuts import render, redirect, get_object_or_404
-from .forms import OrderCreateForm
-from .models import OrderItem
-from .cart import Cart
-
-from django.http import HttpResponse
-
-from .forms import OrderCreateForm
+from django.shortcuts import render, get_object_or_404
 from .models import Order
-import traceback
+
+def order_success(request, order_id):
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
+    return render(request, 'webapp/successfull.html', {'order': order})
+
 
 def create_order(request):
     cart = Cart(request)
@@ -229,7 +202,7 @@ def create_order(request):
                     messages.error(request, "An error occurred while saving the order.")
                     return redirect('successfull')
 
-                print(f"Order ID: {order.pk}")  # Print the order id for debugging
+                print(f"Order ID: {order.pk}") 
 
                 for item in cart:
                     OrderItem.objects.create(
@@ -240,7 +213,7 @@ def create_order(request):
                     )
 
                 cart.clear()
-                return render(request, 'webapp/successfull.html', {'order': order})
+                return redirect('order_success', order_id=order.pk) 
 
             else:
                 messages.error(request, "Fill out your information correctly.")
@@ -255,44 +228,64 @@ def create_order(request):
 def successfull_view(request):
     return render(request, 'webapp/successfull.html')
 
-#def order_list(request):
-#    my_order = Order.objects.filter(customer_id=request.user.id).order_by('-created_at')
-#    paginator = Paginator(my_order, 5)
-#    page = request.GET.get('page')
-#    myorder = paginator.get_page(page)
-
- #   return render(request, 'order/list.html', {"myorder": myorder})
 
 
-#def order_details(request, id):
-#    order_summary = get_object_or_404(Order, id=id)
 
- #   if order_summary.customer_id != request.user.id:
- #       return redirect('store:index')
+@method_decorator(login_required, name='dispatch')
+class LoginView(View):
+    def get(self, request):
+        form = AuthenticationForm()
+        context = {'form': form}
+        return render(request, 'webapp/login.html', context)
 
- #   ordered_items = OrderItem.objects.filter(order_id=id)
- #   context = {
- #       "order_summary": order_summary,
-  #      "ordered_items": ordered_items
-   # }
-   # return render(request, 'order/details.html', context)
+    def post(self, request):
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                if user.is_staff:
+                    return redirect('adminhome')
+                else:
+                    return redirect('home')
 
-from django.shortcuts import render, redirect
-from .models import Product
+        context = {'form': form}
+        return render(request, 'webapp/login.html', context)
+    
+@login_required
+def admin_home(request):
+    products = Product.objects.all()
+    context = {'products': products}
+   
+    return render(request, 'webapp/admin_home.html')
 
-def admin_panel(request):
-    if request.user.is_authenticated and request.user.is_superuser:
-        products = Product.objects.all()
-        print(products)
-        return render(request, 'webapp/admin_panel.html', {'products': products})
+
+def create_product(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'New product added successfully.')
+            return redirect('adminhome')
     else:
-        return redirect('home')  # Redirect non-superusers to the home page
+        form = ProductForm()
 
-def update_quantity(request, product_id):
-    if request.user.is_superuser and request.method == 'POST':
-        quantity = request.POST.get('quantity')
-        product = Product.objects.get(pk=product_id)
-        product.quantity = quantity
-        product.save()
-    return redirect('webapp/admin_panel')
+    context = {'form': form}
+    return render(request, 'webapp/create_product.html', context)
 
+def user_list(request):
+    users = User.objects.all()
+    context = {'users': users}
+    return render(request, 'webapp/users_list.html', context)
+
+def product_list(request):
+    products = Product.objects.all()
+    context = {'products': products}
+    return render(request, 'webapp/product_list.html', context)
+
+def order_list(request):
+    orders=Order.objects.all()
+    context = {'orders': orders}
+    return render(request, 'webapp/order_list.html', context)
