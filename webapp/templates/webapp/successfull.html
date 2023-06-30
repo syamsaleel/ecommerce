@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Order Confirmation</h1>
+    <p>Your order has been confirmed. Thank you for shopping with us!</p>
+    
+    <h2>Order Details</h2>
+    <p>Order ID: {{ order.pk }}</p>
+    <p>Shipping Address: {{ order.shipping_address }}</p>
+    <p>Payment Method: {{ order.payment_method }}</p>
+    
+    <h2>Items in Order</h2>
+    <ul>
+        {% for order_item in order.orderitem_set.all %}
+            <li>{{ order_item.product.name }} - Quantity: {{ order_item.quantity }} - Price: ${{ order_item.price }}</li>
+        {% endfor %}
+    </ul>
+    
+    <p>Total Price: ${{ order.total_price }}</p>
+    
+    <p>Order placed on: {{ order.created_at }}</p>
+{% endblock %}

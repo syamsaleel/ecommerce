@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Detail</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Product Detail</h1>
+        <h2>{{ product.name }}</h2>
+        <p>{{ product.description }}</p>
+        <p>Price: Rs.{{ product.price }}</p>
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" width="200" class="img-fluid">
+        <p>Created at: {{ product.created_at }}</p>
+        <p>Updated at: {{ product.updated_at }}</p>
+    </div>
+
+    <!-- Include Bootstrap JS (Optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
